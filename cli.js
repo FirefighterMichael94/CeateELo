@@ -1,11 +1,72 @@
 const inquirer = require('inquirer');
 const fs = require('fs').promises;
 
+class Shape {
+    constructor(centerX, centerY, shapeColor) {
+        this.centerX = centerX;
+        this.centerY = centerY;
+        this.shapeColor = shapeColor;
+    }
+
+    generateSVG() {
+        // This method should be implemented in subclasses
+        return '';
+    }
+}
+
+class Circle extends Shape {
+    constructor(centerX, centerY, shapeColor, radius) {
+        super(centerX, centerY, shapeColor);
+        this.radius = radius;
+    }
+
+    generateSVG() {
+        return `<circle cx="${this.centerX}" cy="${this.centerY}" r="${this.radius}" fill="${this.shapeColor}" />`;
+    }
+}
+
+class Triangle extends Shape {
+    constructor(centerX, centerY, shapeColor, sideLength) {
+        super(centerX, centerY, shapeColor);
+        this.sideLength = sideLength;
+    }
+
+    generateSVG() {
+        const point1 = `${this.centerX},${this.centerY + this.sideLength / 2}`;
+        const point2 = `${this.centerX - this.sideLength / 2},${this.centerY - this.sideLength / 2}`;
+        const point3 = `${this.centerX + this.sideLength / 2},${this.centerY - this.sideLength / 2}`;
+        return `<polygon points="${point1} ${point2} ${point3}" fill="${this.shapeColor}" />`;
+    }
+}
+
+class Square extends Shape {
+    constructor(centerX, centerY, shapeColor, sideLength) {
+        super(centerX, centerY, shapeColor);
+        this.sideLength = sideLength;
+    }
+
+    generateSVG() {
+        return `<rect x="${this.centerX - this.sideLength / 2}" y="${this.centerY - this.sideLength / 2}" width="${this.sideLength}" height="${this.sideLength}" fill="${this.shapeColor}" />`;
+    }
+}
+
+class Rectangle extends Shape {
+    constructor(centerX, centerY, shapeColor, width, height) {
+        super(centerX, centerY, shapeColor);
+        this.width = width;
+        this.height = height;
+    }
+
+    generateSVG() {
+        return `<rect width="${this.width}" height="${this.height}" x="${this.centerX - this.width / 2}" y="${this.centerY - this.height / 2}" fill="${this.shapeColor}" />`;
+    }
+}
+
 class CLI {
     async run() {
-        const answers = this.createLogo();
+        const answers = await this.createLogo();
         const svg = this.generateSVG(answers.text, answers.textColor, answers.shape, answers.shapeColor);
-        await this.saveSVG(svg);
+        await this.saveSVG(svg); // Save SVG content to file
         console.log("Generated logo.svg");
     }
 
@@ -32,39 +93,39 @@ class CLI {
                 message: 'What color would you like the background to be?'
             }
         ]);
-        return answers;
     }
 
     generateSVG(text, textColor, shape, shapeColor) {
         let shapeElement;
-        const centerX = 150;
-        const centerY = 100;
-        switch (shape) {
+        switch (shape.toLowerCase()) {
             case 'circle':
-                shapeElement = `<circle cx="${centerX}" cy="${centerY}" r="50" fill="${shapeColor}" />`;
+                shapeElement = new Circle(150, 100, shapeColor, 50);
                 break;
             case 'triangle':
-                shapeElement = `<polygon points="${centerX - 50},${centerY + 50} ${centerX},${centerY - 50} ${centerX + 50},${centerY + 50}" fill="${shapeColor}" />`;
+                shapeElement = new Triangle(150, 100, shapeColor, 100);
                 break;
             case 'square':
-                shapeElement = `<rect x="${centerX - 50}" y="${centerY - 50}" width="100" height="100" fill="${shapeColor}" />`;
+                shapeElement = new Square(150, 100, shapeColor, 100);
+                break;
+            case 'rectangle':
+                shapeElement = new Rectangle(150, 100, shapeColor, 200, 100);
                 break;
             default:
-                shapeElement = `<rect width="200" height="100" x="50" y="50" fill="${shapeColor}" />`;
-                ;
-                break;
+                throw new Error('Invalid shape');
         }
-        const svg = `
-          <svg version="1.1" width="300" height="200" xmlns="http://www.w3.org/2000/svg">
-            ${shapeElement}
+        return `<svg version="1.1" width="300" height="200" xmlns="http://www.w3.org/2000/svg">
+            ${shapeElement.generateSVG()}
             <text x="50%" y="50%" fill="${textColor}" font-size="48" text-anchor="middle" dominant-baseline="middle">${text}</text>
-          </svg>
-        `;
-        return svg;
+        </svg>`;
     }
 
     async saveSVG(svg) {
-        await fs.writeFile('logo.svg', svg);
+        try {
+            await fs.writeFile('logo.svg', svg);
+            console.log("SVG file saved as logo.svg");
+        } catch (error) {
+            console.error("Error saving SVG file:", error);
+        }
     }
 }
 
